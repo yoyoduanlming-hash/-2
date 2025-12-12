@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>聊天网站</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { max-width: 800px; margin: 20px auto; font-family: Arial; }
+        .chat-container { border: 1px solid #ddd; padding: 20px; border-radius: 8px; }
+        .messages { height: 400px; overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-bottom: 20px; }
+        .message { margin: 10px 0; padding: 8px; border-radius: 4px; }
+        .user-msg { background: #e3f2fd; text-align: right; }
+        .other-msg { background: #f5f5f5; text-align: left; }
+        .msg-meta { font-size: 12px; color: #666; margin-top: 4px; }
+        .input-area { display: flex; gap: 10px; }
+        input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .username-input { width: 150px; }
+        .content-input { flex: 1; }
+        button { padding: 8px 20px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #1976d2; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h2>聊天室</h2>
+        <div class="messages" id="messages-container"></div>
+        <div class="input-area">
+            <input type="text" class="username-input" id="username" placeholder="你的昵称">
+            <input type="text" class="content-input" id="msg-content" placeholder="输入消息...">
+            <button onclick="sendMessage()">发送</button>
+        </div>
+    </div>
+
+    <script>
+        // 定时刷新消息（每2秒获取一次）
+        setInterval(fetchMessages, 200);
+
+        // 获取所有消息并渲染
+        async function fetchMessages() {
+            try {
+                const res = await fetch("/api/messages");
+                const data = await res.json();
+                renderMessages(data.messages);
+            } catch (err) {
+                console.error("获取消息失败：", err);
+            }
+        }
+
+        // 渲染消息到页面
+        function renderMessages(messages) {
+            const container = document.getElementById("messages-container");
+            container.innerHTML = ""; // 清空旧消息
+            
+            messages.forEach(msg => {
+                const msgDiv = document.createElement("div");
+                msgDiv.className = "message other-msg"; // 简化处理，统一样式
+                msgDiv.innerHTML = `
+                    <strong>${msg.username}</strong>: ${msg.content}
+                    <div class="msg-meta">${msg.time}</div>
+                `;
+                container.appendChild(msgDiv);
+            });
+            
+            // 滚动到最新消息
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // 发送消息
+        async function sendMessage() {
+            const username = document.getElementById("username").value || "匿名用户";
+            const content = document.getElementById("msg-content").value.trim();
+            
+            if (!content) {
+                alert("消息内容不能为空！");
+                return;
+            }
+
+            try {
+                await fetch("/api/send", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ username, content })
+                });
+                
+                // 清空输入框
+                document.getElementById("msg-content").value = "";
+                // 立即刷新消息
+                fetchMessages();
+            } catch (err) {
+                console.error("发送消息失败：", err);
+                alert("发送失败，请重试！");
+            }
+        }
+
+        // 页面加载时立即获取一次消息
+        fetchMessages();
+    </script>
+</body>
+</html>
