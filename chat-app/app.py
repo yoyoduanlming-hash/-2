@@ -1,49 +1,34 @@
 from flask import Flask, render_template, request, jsonify
 import time
 
+# 关键：必须定义一个名为app的变量作为Flask应用入口
 app = Flask(__name__)
-application = app  # Vercel必须的入口变量
 
-# 全局错误捕获
-@app.errorhandler(500)
-def internal_error(error):
-    # 显示错误详情，方便调试
-    return f"服务器错误: {str(error)}", 500
-
+# 存储消息的列表
 messages = []
 
+# 根路由，返回聊天页面
 @app.route('/')
 def index():
-    try:
-        # 尝试加载模板，捕获可能的模板错误
-        return render_template('index.html')
-    except Exception as e:
-        return f"加载页面失败: {str(e)}", 500
+    return render_template('index.html')
 
-# 其他路由保持不变，但都加上try-except
+# 处理发送消息的请求
 @app.route('/send', methods=['POST'])
 def send_message():
-    try:
-        data = request.get_json()
-        if not data or 'username' not in data or 'text' not in data:
-            return jsonify(success=False, error="缺少用户名或消息内容"), 400
-        
-        message = {
-            'username': data['username'],
-            'text': data['text'],
-            'time': time.strftime('%H:%M:%S')
-        }
-        messages.append(message)
-        return jsonify(success=True)
-    except Exception as e:
-        return jsonify(success=False, error=f"发送消息失败: {str(e)}"), 500
+    data = request.get_json()
+    message = {
+        'username': data['username'],
+        'text': data['text'],
+        'time': time.strftime('%H:%M:%S')
+    }
+    messages.append(message)
+    return jsonify(success=True)
 
+# 提供消息列表的接口
 @app.route('/messages')
 def get_messages():
-    try:
-        return jsonify(messages)
-    except Exception as e:
-        return jsonify(error=f"获取消息失败: {str(e)}"), 500
+    return jsonify(messages)
 
+# 本地运行时使用
 if __name__ == '__main__':
     app.run(debug=True)
